@@ -35,7 +35,7 @@ The config file is written by `node scripts/install.mjs --global`. If it's missi
 | Fetch sanity only (no LLM) | `npm run dry-run` | ~30s |
 | Re-render existing sidecar | `npm run render [date]` | <1s |
 | Re-run trading section | `npm run regen-trading [date]` | ~2 min, 1 LLM call |
-| Top-up missing cnSummary | `npm run regen-enrich <cat:sub> [date]` | ~20-40s, 1 LLM call |
+| Top-up missing summary | `npm run regen-enrich <cat:sub> [date]` | ~20-40s, 1 LLM call |
 | Open today's report in Chrome | `npm run open` | instant |
 | Sonnet quota + call history | `npm run quota-report` | instant |
 
@@ -64,7 +64,7 @@ The config file is written by `node scripts/install.mjs --global`. If it's missi
 - **Each merged L2 subcategory gets a Sonnet pass**: GH-trending (per-source), finance:news, politics:world, tech:ai-news, tech:x-viral.
 - Each pass = **one batched Sonnet call** for all items in that subgroup. Don't iterate per-item.
 - Sources with `lang: "zh"` in registry **skip** enrichment (already Chinese).
-- Failures are non-fatal: skipped articles just render without `cnSummary`.
+- Failures are non-fatal: skipped articles just render without `summary`.
 
 ## Diagnostic flow
 
@@ -130,7 +130,7 @@ Order matters — top-to-bottom:
 
 - Every source has: `id`, `name`, `type` (`rss`/`api`/`scrape`), `url`, `category`, `subcategory?`, `enabled?`, `useCurl?`, `lang?`
 - `useCurl: true` for sources behind Cloudflare-style TLS-fingerprint blocks
-- `lang: "zh"` for Chinese-native sources (skip cnSummary enrichment)
+- `lang: "zh"` (or "en") for sources already in a specific language — enrich skips them when REPORT_LOCALE matches
 - Disabled sources stay in registry with `enabled: false` + comment explaining why — don't delete
 
 ## Render layout (current, may evolve)
@@ -141,16 +141,16 @@ L1 tabs in order: `tech / trading / politics / finance / community`
 技术动态 (tech)
   L2: GitHub Trending  (per-source, cap 20)
   L2: X 推文           (single source attentionvc-ai, cap 20, preserve fetch order)
-  L2: AI 媒体          (merged 7 RSS sources, cap 15, cnSummary)
+  L2: AI 媒体          (merged 7 RSS sources, cap 15, summary)
 
 市场行情 (trading)
   asset-group tabs: macro / 美股 / 加密 / 中港 / 商品外汇
 
 时政观察 (politics:world)
-  merged single timeline, cap 15, cnSummary, sports filtered
+  merged single timeline, cap 15, summary, sports filtered
 
 财经要点 (finance:news)
-  merged single timeline, cap 12, cnSummary
+  merged single timeline, cap 12, summary
 
 社区讨论 (community)
   Source tabs: V2EX / LinuxDo (cap 10 each)

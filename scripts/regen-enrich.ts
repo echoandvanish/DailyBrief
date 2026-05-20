@@ -6,7 +6,7 @@ import path from "node:path";
 
 import { enrichFinanceNewsSummaries } from "../lib/ai/enrich";
 import type { ArticleInput } from "../lib/ai/pipeline";
-import { sources } from "../lib/sources/registry";
+import { sources, REPORT_LOCALE } from "../lib/sources/registry";
 import {
   MERGED_SUBGROUP_LIMITS,
   isSportsArticle,
@@ -16,10 +16,11 @@ import { todayKey } from "../lib/utils";
 const OUTPUT_DIR = "daily_reports";
 
 /**
- * Top up missing cnSummary fields on the sidecar without re-running the
+ * Top up missing summary fields on the sidecar without re-running the
  * full daily pipeline. Useful when MERGED_SUBGROUP_LIMITS bumps up
  * (e.g. politics 10 → 15) and the previous enrichment only covered
- * the old top-N.
+ * the old top-N. Honors REPORT_LOCALE: sources already in the target
+ * language are skipped just like in daily.ts.
  *
  * Usage:
  *   npm run regen-enrich -- politics:world
@@ -63,8 +64,8 @@ async function main() {
       s.enabled !== false,
   );
   const enabledIds = new Set(subSources.map((s) => s.id));
-  const zhOnlyIds = new Set(
-    subSources.filter((s) => s.lang === "zh").map((s) => s.id),
+  const sameLocaleIds = new Set(
+    subSources.filter((s) => (s.lang ?? "en") === REPORT_LOCALE).map((s) => s.id),
   );
   const limit = MERGED_SUBGROUP_LIMITS[`${category}:${subcategory}`] ?? 12;
   const top = data.articles
@@ -78,10 +79,10 @@ async function main() {
     .slice(0, limit);
 
   const missing = top
-    .filter((a) => !zhOnlyIds.has(a.sourceId))
-    .filter((a) => !a.cnSummary);
+    .filter((a) => !sameLocaleIds.has(a.sourceId))
+    .filter((a) => !a.summary && !(a as { cnSummary?: string }).cnSummary);
   console.log(
-    `[regen-enrich] ${target}: top ${top.length}, missing cnSummary on ${missing.length}`,
+    `[regen-enrich] ${target}: top ${top.length}, missing summary on ${missing.length}`,
   );
   if (missing.length === 0) {
     console.log("[regen-enrich] nothing to do.");
@@ -97,8 +98,8 @@ async function main() {
   let patched = 0;
   for (const a of data.articles) {
     const s = summaries.get(a.url);
-    if (s && !a.cnSummary) {
-      a.cnSummary = s;
+    if (s && !a.summary && !(a as { cnSummary?: string }).cnSummary) {
+      a.summary = s;
       patched++;
     }
   }

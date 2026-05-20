@@ -4,7 +4,7 @@ config({ path: ".env.local" });
 import fs from "node:fs";
 import path from "node:path";
 
-import { sources } from "../lib/sources/registry";
+import { sources, REPORT_LOCALE } from "../lib/sources/registry";
 import { fetchSource } from "../lib/sources/dispatch";
 import {
   generateDailyReport,
@@ -52,13 +52,13 @@ async function enrichGhTrending(articles: ArticleInput[]): Promise<void> {
   const gh = articles.filter((a) => a.sourceId === "github-trending");
   if (gh.length === 0) return;
   console.log(
-    `[daily] enriching ${gh.length} GitHub Trending repos with cn summaries…`,
+    `[daily] enriching ${gh.length} GitHub Trending repos with ${REPORT_LOCALE} summaries…`,
   );
   const t0 = Date.now();
   const summaries = await enrichGithubTrendingSummaries(gh);
   for (const a of gh) {
     const s = summaries.get(a.url);
-    if (s) a.cnSummary = s;
+    if (s) a.summary = s;
   }
   console.log(
     `[daily] enrichment done in ${((Date.now() - t0) / 1000).toFixed(1)}s, matched ${summaries.size}/${gh.length}`,
@@ -97,7 +97,7 @@ async function enrichXViral(articles: ArticleInput[]): Promise<void> {
     .filter((a) => a.sourceId === "attentionvc-ai")
     .slice(0, 20);
   if (xPosts.length === 0) return;
-  console.log(`[daily] enriching ${xPosts.length} X 热帖 with cn summaries…`);
+  console.log(`[daily] enriching ${xPosts.length} X posts with ${REPORT_LOCALE} summaries…`);
   const t0 = Date.now();
   // Author handle is encoded in the URL (https://x.com/{handle}/status/{id})
   // — extract it to help the model identify whose claim it is.
@@ -111,7 +111,7 @@ async function enrichXViral(articles: ArticleInput[]): Promise<void> {
   );
   for (const a of xPosts) {
     const s = summaries.get(a.url);
-    if (s) a.cnSummary = s;
+    if (s) a.summary = s;
   }
   console.log(
     `[daily] enrichment done in ${((Date.now() - t0) / 1000).toFixed(1)}s, matched ${summaries.size}/${xPosts.length}`,
@@ -121,12 +121,13 @@ async function enrichXViral(articles: ArticleInput[]): Promise<void> {
 /**
  * Shared implementation for "merged subgroup" enrichment: collect all
  * enabled articles in (category, subcategory), sort by date desc, take
- * the display cap (from MERGED_SUBGROUP_LIMITS), and ask Sonnet to
- * Chinese-summarize them in a single batch. Symmetric to the merge
- * logic in render.ts groupRaw, so display and enrichment stay aligned.
+ * the display cap (from MERGED_SUBGROUP_LIMITS), and ask the LLM to
+ * summarize them into REPORT_LOCALE in a single batch. Symmetric to the
+ * merge logic in render.ts groupRaw, so display and enrichment stay aligned.
  *
- * Sources marked `lang: "zh"` are skipped — their content is already in
- * Chinese, so a cnSummary would be a redundant rewrite.
+ * Sources whose `lang` already matches REPORT_LOCALE are skipped — no
+ * point translating English to English (en mode) or Chinese to Chinese
+ * (zh mode).
  */
 async function enrichMergedSubgroup(
   articles: ArticleInput[],
@@ -140,12 +141,13 @@ async function enrichMergedSubgroup(
       s.enabled !== false,
   );
   const enabledIds = new Set(subSources.map((s) => s.id));
-  const zhOnlyIds = new Set(
-    subSources.filter((s) => s.lang === "zh").map((s) => s.id),
+  const sameLocaleIds = new Set(
+    subSources.filter((s) => (s.lang ?? "en") === REPORT_LOCALE).map((s) => s.id),
   );
   const limit = MERGED_SUBGROUP_LIMITS[`${category}:${subcategory}`] ?? 12;
   // Top-N respects all enabled sources (so we don't reshape the merged
-  // timeline). Enrichment only targets non-zh items within that slice.
+  // timeline). Enrichment only targets items NOT already in the target
+  // language within that slice.
   const top = articles
     .filter((a) => enabledIds.has(a.sourceId))
     .filter((a) => category !== "politics" || !isSportsArticle(a.title))
@@ -154,16 +156,16 @@ async function enrichMergedSubgroup(
         (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0),
     )
     .slice(0, limit);
-  const toEnrich = top.filter((a) => !zhOnlyIds.has(a.sourceId));
+  const toEnrich = top.filter((a) => !sameLocaleIds.has(a.sourceId));
   if (toEnrich.length === 0) return;
   console.log(
-    `[daily] enriching ${toEnrich.length}/${top.length} ${category}:${subcategory} items with cn summaries…`,
+    `[daily] enriching ${toEnrich.length}/${top.length} ${category}:${subcategory} items with ${REPORT_LOCALE} summaries…`,
   );
   const t0 = Date.now();
   const summaries = await enrichFinanceNewsSummaries(toEnrich);
   for (const a of toEnrich) {
     const s = summaries.get(a.url);
-    if (s) a.cnSummary = s;
+    if (s) a.summary = s;
   }
   console.log(
     `[daily] enrichment done in ${((Date.now() - t0) / 1000).toFixed(1)}s, matched ${summaries.size}/${toEnrich.length}`,
@@ -246,7 +248,7 @@ async function main() {
   const base = path.join(OUTPUT_DIR, date);
   const raw = groupRaw(articles, sources);
   fs.writeFileSync(`${base}.json`, JSON.stringify(report, null, 2), "utf8");
-  // Sidecar with all fetched articles + LLM-attached cnSummary, so
+  // Sidecar with all fetched articles + LLM-attached summary, so
   // scripts/render.ts can rebuild HTML/MD for UI iteration without
   // re-fetching or re-calling the LLM.
   fs.writeFileSync(

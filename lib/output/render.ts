@@ -5,14 +5,120 @@ import type {
   TradingSection,
 } from "../ai/pipeline";
 import type { WatchlistPick } from "../ai/trading-commentary";
+import { REPORT_LOCALE } from "../sources/registry";
 import type { Category, SourceDef } from "../sources/types";
 import { V2EX_OFF_TOPIC_RE } from "../sources/v2ex";
 import type { TickerAnalysis } from "../trading/signals";
 import {
-  ASSET_GROUP_LABELS,
+  getAssetGroupLabels,
   ASSET_GROUP_ORDER,
   type AssetGroup,
 } from "../trading/watchlist";
+
+// ----- i18n -----
+
+/**
+ * Localized UI strings. `t` resolves to TEXTS_ZH or TEXTS_EN at module
+ * init based on REPORT_LOCALE. All hardcoded display text routes through
+ * this object so adding a third locale = adding one more table.
+ */
+const TEXTS_ZH = {
+  siteTitle: "每日简报",
+  catTech: "技术动态",
+  catFinance: "财经要点",
+  catPolitics: "时政观察",
+  catTrading: "市场行情",
+  catCommunity: "社区讨论",
+  subAiNews: "AI 媒体",
+  subXViral: "X 推文",
+  subBlogWeekly: "博客周刊",
+  subCnCommunity: "中文社区",
+  subOverseasCommunity: "海外社区",
+  subFinanceNews: "财经新闻",
+  subFinanceCommunity: "社区讨论",
+  subWorld: "国际要闻",
+  subOverseasNews: "海外科技",
+  subOverseas: "海外",
+  emptySource: "该源今日无内容。",
+  emptyCategory: "该分类今日无内容。",
+  emptyGroup: "该组今日无数据。",
+  footer: "内容均来自原媒体，本站仅作摘要整理与回链。",
+  summaryLabelNews: "中文摘要",
+  summaryLabelIntro: "中文介绍",
+  tradingMarketOverview: "市场总览",
+  tradingTodayFocus: "今日关注",
+  tradingAllAssets: "全部资产",
+  tradingRiskCaveat: "风险提示",
+  widgetCryptoFearGreed: "加密恐慌贪婪",
+  widgetCryptoCap: "加密总市值",
+  widgetBtcDom: "BTC 主导率",
+  widgetVolume24h: "24h 成交量",
+  widgetActiveCoins: "活跃币",
+  ticker5d: "5 日",
+  tickerVs52wHigh: "距 52w 高",
+  tickerTrend: "趋势",
+  tickerMacd: "MACD / 信号",
+  signalToday: "今天",
+  signalDaysAgoSuffix: "天前",
+  trendBullish: "多头",
+  trendBearish: "空头",
+  trendNeutral: "中性",
+  mdTodayOverview: "今日总览",
+  mdEditorNote: "编辑短评",
+  mdTodayKeywords: "今日关键词",
+  mdImportance: "重要度",
+};
+
+const TEXTS_EN: typeof TEXTS_ZH = {
+  siteTitle: "Daily Brief",
+  catTech: "Tech",
+  catFinance: "Finance",
+  catPolitics: "World",
+  catTrading: "Markets",
+  catCommunity: "Community",
+  subAiNews: "AI Media",
+  subXViral: "X Viral",
+  subBlogWeekly: "Blog Weekly",
+  subCnCommunity: "Chinese Community",
+  subOverseasCommunity: "Overseas Community",
+  subFinanceNews: "Finance News",
+  subFinanceCommunity: "Community",
+  subWorld: "World News",
+  subOverseasNews: "Overseas Tech",
+  subOverseas: "Overseas",
+  emptySource: "No content from this source today.",
+  emptyCategory: "No content in this category today.",
+  emptyGroup: "No data for this group today.",
+  footer:
+    "Content sourced from original publishers; this site provides summary and backlinks only.",
+  summaryLabelNews: "Summary",
+  summaryLabelIntro: "Summary",
+  tradingMarketOverview: "Market Overview",
+  tradingTodayFocus: "Today's Focus",
+  tradingAllAssets: "All Assets",
+  tradingRiskCaveat: "Risk Disclaimer",
+  widgetCryptoFearGreed: "Crypto Fear/Greed",
+  widgetCryptoCap: "Crypto Market Cap",
+  widgetBtcDom: "BTC Dominance",
+  widgetVolume24h: "24h Volume",
+  widgetActiveCoins: "Active coins",
+  ticker5d: "5d",
+  tickerVs52wHigh: "vs 52w High",
+  tickerTrend: "Trend",
+  tickerMacd: "MACD / Signal",
+  signalToday: "today",
+  signalDaysAgoSuffix: "d ago",
+  trendBullish: "Bullish",
+  trendBearish: "Bearish",
+  trendNeutral: "Neutral",
+  mdTodayOverview: "Today's Overview",
+  mdEditorNote: "Editor's Note",
+  mdTodayKeywords: "Keywords",
+  mdImportance: "Importance",
+};
+
+const STR = REPORT_LOCALE === "en" ? TEXTS_EN : TEXTS_ZH;
+const ASSET_GROUP_LABELS_LOCALIZED = getAssetGroupLabels(REPORT_LOCALE);
 
 // ----- types -----
 
@@ -39,15 +145,15 @@ export type RawByCategory = Record<Category, SubGroup[]>;
 // ----- labels & ordering -----
 
 const CATEGORY_LABELS: Record<Category, string> = {
-  tech: "技术动态",
-  finance: "财经要点",
-  politics: "时政观察",
+  tech: STR.catTech,
+  finance: STR.catFinance,
+  politics: STR.catPolitics,
 };
 
 const CATEGORY_DIGEST_LABELS: Record<Category, string> = {
-  tech: "技术动态",
-  finance: "财经要点",
-  politics: "时政观察",
+  tech: STR.catTech,
+  finance: STR.catFinance,
+  politics: STR.catPolitics,
 };
 
 /**
@@ -67,12 +173,12 @@ const TECH_COMMUNITY_SUBS = new Set(["cn-community"]);
 
 const SUBCATEGORY_LABELS: Record<string, string> = {
   "github-trending": "GitHub Trending",
-  "cn-community": "中文社区",
-  "ai-news": "AI 媒体",
-  "x-viral": "X 推文",
-  "blog-weekly": "博客周刊",
-  news: "财经新闻",
-  world: "国际要闻",
+  "cn-community": STR.subCnCommunity,
+  "ai-news": STR.subAiNews,
+  "x-viral": STR.subXViral,
+  "blog-weekly": STR.subBlogWeekly,
+  news: STR.subFinanceNews,
+  world: STR.subWorld,
 };
 
 /**
@@ -305,7 +411,9 @@ function escapeHtml(s: string): string {
 function formatDate(d: Date | undefined): string {
   if (!d) return "";
   try {
-    return d.toLocaleString("zh-CN", {
+    // zh: "05/20 16:00"  · en: "May 20, 4:00 PM" → keep 24h en-GB style "20/05 16:00"
+    const localeTag = REPORT_LOCALE === "en" ? "en-GB" : "zh-CN";
+    return d.toLocaleString(localeTag, {
       timeZone: "Asia/Shanghai",
       month: "2-digit",
       day: "2-digit",
@@ -324,19 +432,22 @@ function renderArticleHtml(a: ArticleInput, showSource = false): string {
   const title = escapeHtml(a.title);
   const url = escapeHtml(a.url);
   const excerpt = a.excerpt ? escapeHtml(a.excerpt) : "";
-  const cnSummary = a.cnSummary ? escapeHtml(a.cnSummary) : "";
+  // Backwards-compat: old sidecar JSON files may carry `cnSummary` instead.
+  const summaryText = a.summary ?? (a as unknown as { cnSummary?: string }).cnSummary;
+  const summary = summaryText ? escapeHtml(summaryText) : "";
   const meta = a.meta ? escapeHtml(a.meta) : "";
   const time = formatDate(a.publishedAt);
   const sourceLabel = showSource && a.source ? escapeHtml(a.source) : "";
   const metaLine = [sourceLabel, time].filter(Boolean).join(" · ");
-  // News-style summary for finance/politics, project-introduction style for GH/tech
-  const cnLabel = a.category === "finance" || a.category === "politics" ? "中文摘要" : "中文介绍";
+  // News-style summary label for finance/politics, project-intro style for GH/tech.
+  const newsy = a.category === "finance" || a.category === "politics";
+  const summaryLabel = newsy ? STR.summaryLabelNews : STR.summaryLabelIntro;
   return `<article class="article">
   <h3 class="article-title"><a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a></h3>
   ${meta ? `<p class="article-stats">${meta}</p>` : ""}
   ${metaLine ? `<p class="article-meta">${metaLine}</p>` : ""}
   ${excerpt ? `<p class="article-excerpt">${excerpt}</p>` : ""}
-  ${cnSummary ? `<p class="article-cn-summary"><span class="cn-label">${cnLabel}</span> ${cnSummary}</p>` : ""}
+  ${summary ? `<p class="article-summary"><span class="summary-label">${summaryLabel}</span> ${summary}</p>` : ""}
 </article>`;
 }
 
@@ -348,7 +459,7 @@ function renderSourceContent(
 ): string {
   const showSource = source.merged === true;
   return `<div class="source-content${isActive ? " active" : ""}" data-source-content="${escapeHtml(source.sourceId)}" data-sub="${escapeHtml(subId)}" data-cat="${category}">
-    ${source.items.length === 0 ? '<p class="empty">该源今日无内容。</p>' : source.items.map((a) => renderArticleHtml(a, showSource)).join("\n")}
+    ${source.items.length === 0 ? `<p class="empty">${STR.emptySource}</p>` : source.items.map((a) => renderArticleHtml(a, showSource)).join("\n")}
   </div>`;
 }
 
@@ -384,7 +495,7 @@ function renderRawCategoryPanel(
   subs: SubGroup[],
 ): string {
   if (subs.length === 0) {
-    return `<p class="empty">该分类今日无内容。</p>`;
+    return `<p class="empty">${STR.emptyCategory}</p>`;
   }
   if (subs.length === 1) {
     return renderSubContent(category, subs[0], true);
@@ -430,11 +541,11 @@ export function renderHtml(
   };
 
   return `<!doctype html>
-<html lang="zh-CN">
+<html lang="${REPORT_LOCALE === "en" ? "en" : "zh-CN"}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>每日简报 · ${date}</title>
+<title>${STR.siteTitle} · ${date}</title>
 <style>
   :root {
     --bg: #fafaf9;
@@ -777,7 +888,7 @@ export function renderHtml(
     font-size: 0.9rem;
     line-height: 1.6;
   }
-  .article-cn-summary {
+  .article-summary {
     margin: 0.55rem 0 0;
     padding: 0.6rem 0.85rem;
     background: var(--card);
@@ -787,7 +898,7 @@ export function renderHtml(
     line-height: 1.6;
     color: var(--fg);
   }
-  .cn-label {
+  .summary-label {
     display: inline-block;
     font-size: 0.68rem;
     color: var(--link);
@@ -1059,16 +1170,16 @@ export function renderHtml(
 <body>
 <main>
   <header class="report-header">
-    <span class="eyebrow">每日简报</span>
+    <span class="eyebrow">${STR.siteTitle}</span>
     <h1 class="report-title">${date}</h1>
   </header>
 
   <nav class="tabs" role="tablist">
     <button class="tab active" data-tab="tech">${CATEGORY_LABELS.tech}<span class="count">${counts.tech}</span></button>
-    ${trading ? `<button class="tab" data-tab="trading">市场行情<span class="count">${trading.tickers.length}</span></button>` : ""}
+    ${trading ? `<button class="tab" data-tab="trading">${STR.catTrading}<span class="count">${trading.tickers.length}</span></button>` : ""}
     <button class="tab" data-tab="politics">${CATEGORY_LABELS.politics}<span class="count">${counts.politics}</span></button>
     <button class="tab" data-tab="finance">${CATEGORY_LABELS.finance}<span class="count">${counts.finance}</span></button>
-    <button class="tab" data-tab="community">社区讨论<span class="count">${counts.community}</span></button>
+    <button class="tab" data-tab="community">${STR.catCommunity}<span class="count">${counts.community}</span></button>
   </nav>
 
   <section class="panel active" data-panel="tech">
@@ -1086,7 +1197,7 @@ export function renderHtml(
   </section>
 
   <footer>
-    内容均来自原媒体，本站仅作摘要整理与回链。
+    ${STR.footer}
   </footer>
 </main>
 <script>
@@ -1163,9 +1274,9 @@ const SIGNAL_TONE: Record<string, "bull" | "bear" | "caution"> = {
 };
 
 const TREND_LABEL: Record<TickerAnalysis["trend"], string> = {
-  bullish: "多头",
-  bearish: "空头",
-  neutral: "中性",
+  bullish: STR.trendBullish,
+  bearish: STR.trendBearish,
+  neutral: STR.trendNeutral,
 };
 
 function stanceClass(stance: string): "bull" | "bear" | "neutral" {
@@ -1217,7 +1328,7 @@ function renderTickerCard(t: TickerAnalysis): string {
       const tone = SIGNAL_TONE[s.type] ?? "caution";
       const ageSuffix =
         s.daysAgo !== undefined
-          ? ` <span class="signal-age">(${s.daysAgo === 0 ? "今天" : `${s.daysAgo} 天前`})</span>`
+          ? ` <span class="signal-age">(${s.daysAgo === 0 ? STR.signalToday : `${s.daysAgo} ${STR.signalDaysAgoSuffix}`})</span>`
           : "";
       return `<span class="signal-pill tone-${tone}">${escapeHtml(s.label)}${ageSuffix}</span>`;
     })
@@ -1235,12 +1346,12 @@ function renderTickerCard(t: TickerAnalysis): string {
       </div>
     </header>
     <dl class="ticker-indicators">
-      <div><dt>5日</dt><dd class="${pct5Cls}">${fmtPct(t.pct5Day)}</dd></div>
-      <div><dt>距 52w 高</dt><dd>${fmtPct(t.pct52WeekHigh, 1)}</dd></div>
+      <div><dt>${STR.ticker5d}</dt><dd class="${pct5Cls}">${fmtPct(t.pct5Day)}</dd></div>
+      <div><dt>${STR.tickerVs52wHigh}</dt><dd>${fmtPct(t.pct52WeekHigh, 1)}</dd></div>
       <div><dt>RSI(14)</dt><dd class="rsi-${t.rsiState}">${fmtNum(t.rsi14, 1)}</dd></div>
-      <div><dt>趋势</dt><dd class="trend-${trendCls}">${TREND_LABEL[t.trend]}</dd></div>
+      <div><dt>${STR.tickerTrend}</dt><dd class="trend-${trendCls}">${TREND_LABEL[t.trend]}</dd></div>
       <div><dt>SMA 20 / 50 / 200</dt><dd>${fmtNum(t.sma20)} / ${fmtNum(t.sma50)} / ${fmtNum(t.sma200)}</dd></div>
-      <div><dt>MACD / 信号</dt><dd>${fmtNum(t.macd, 3)} / ${fmtNum(t.macdSignal, 3)}</dd></div>
+      <div><dt>${STR.tickerMacd}</dt><dd>${fmtNum(t.macd, 3)} / ${fmtNum(t.macdSignal, 3)}</dd></div>
     </dl>
     ${signals ? `<div class="ticker-signals">${signals}</div>` : ""}
   </article>`;
@@ -1269,7 +1380,7 @@ function renderCryptoWidgets(t: TradingSection): string {
   if (fg) {
     const tone = fearGreedTone(fg.value);
     items.push(`<div class="crypto-widget fg-${tone}">
-      <div class="widget-label">加密恐慌贪婪</div>
+      <div class="widget-label">${STR.widgetCryptoFearGreed}</div>
       <div class="widget-value">${fg.value}</div>
       <div class="widget-sub">${escapeHtml(fg.classificationCn)}</div>
     </div>`);
@@ -1277,19 +1388,19 @@ function renderCryptoWidgets(t: TradingSection): string {
   if (cg) {
     const tone = cg.marketCapChangePct24h >= 0 ? "positive" : "negative";
     items.push(`<div class="crypto-widget">
-      <div class="widget-label">加密总市值</div>
+      <div class="widget-label">${STR.widgetCryptoCap}</div>
       <div class="widget-value">${fmtBigUsd(cg.totalMarketCapUsd)}</div>
       <div class="widget-sub ${tone}">${fmtPct(cg.marketCapChangePct24h)} / 24h</div>
     </div>`);
     items.push(`<div class="crypto-widget">
-      <div class="widget-label">BTC 主导率</div>
+      <div class="widget-label">${STR.widgetBtcDom}</div>
       <div class="widget-value">${cg.btcDominance.toFixed(1)}%</div>
       <div class="widget-sub">ETH ${cg.ethDominance.toFixed(1)}%</div>
     </div>`);
     items.push(`<div class="crypto-widget">
-      <div class="widget-label">24h 成交量</div>
+      <div class="widget-label">${STR.widgetVolume24h}</div>
       <div class="widget-value">${fmtBigUsd(cg.total24hVolumeUsd)}</div>
-      <div class="widget-sub">活跃币 ${cg.activeCryptocurrencies.toLocaleString()}</div>
+      <div class="widget-sub">${STR.widgetActiveCoins} ${cg.activeCryptocurrencies.toLocaleString()}</div>
     </div>`);
   }
   return `<div class="crypto-widgets">${items.join("")}</div>`;
@@ -1308,7 +1419,7 @@ function renderTradingPanel(trading: TradingSection): string {
 
   const groupTabs = ASSET_GROUP_ORDER.map(
     (g, i) =>
-      `<button class="trading-group-tab${i === 0 ? " active" : ""}" data-group="${g}">${escapeHtml(ASSET_GROUP_LABELS[g])}<span class="count">${groupCounts[g] ?? 0}</span></button>`,
+      `<button class="trading-group-tab${i === 0 ? " active" : ""}" data-group="${g}">${escapeHtml(ASSET_GROUP_LABELS_LOCALIZED[g])}<span class="count">${groupCounts[g] ?? 0}</span></button>`,
   ).join("");
 
   const groupPanels = ASSET_GROUP_ORDER.map((g, i) => {
@@ -1318,7 +1429,7 @@ function renderTradingPanel(trading: TradingSection): string {
       g === "crypto" ? renderCryptoWidgets(trading) : "";
     return `<div class="trading-group-content${i === 0 ? " active" : ""}" data-group="${g}">
       ${cryptoWidgets}
-      ${groupTickers.length === 0 ? '<p class="empty">该组今日无数据。</p>' : groupTickers.map(renderTickerCard).join("")}
+      ${groupTickers.length === 0 ? `<p class="empty">${STR.emptyGroup}</p>` : groupTickers.map(renderTickerCard).join("")}
     </div>`;
   }).join("");
 
@@ -1326,14 +1437,14 @@ function renderTradingPanel(trading: TradingSection): string {
   const risk = escapeHtml(trading.risk_caveat ?? "");
 
   return `<section class="trading-overview-card">
-    <span class="eyebrow">市场总览</span>
+    <span class="eyebrow">${STR.tradingMarketOverview}</span>
     <p class="overview-text trading-overview-text">${overview}</p>
   </section>
 
   ${
     trading.watchlist.length > 0
       ? `<section class="trading-watchlist">
-    <h2 class="category-title trading-section-title">今日关注</h2>
+    <h2 class="category-title trading-section-title">${STR.tradingTodayFocus}</h2>
     <div class="trading-picks">
       ${trading.watchlist.map(renderPickCard).join("\n")}
     </div>
@@ -1342,7 +1453,7 @@ function renderTradingPanel(trading: TradingSection): string {
   }
 
   <section class="trading-tickers">
-    <h2 class="category-title trading-section-title">全部资产</h2>
+    <h2 class="category-title trading-section-title">${STR.tradingAllAssets}</h2>
     <nav class="trading-group-tabs">${groupTabs}</nav>
     <div class="trading-group-contents">${groupPanels}</div>
   </section>
@@ -1350,7 +1461,7 @@ function renderTradingPanel(trading: TradingSection): string {
   ${
     risk
       ? `<section class="trading-risk">
-    <span class="eyebrow">风险提示</span>
+    <span class="eyebrow">${STR.tradingRiskCaveat}</span>
     <p>${risk}</p>
   </section>`
       : ""
@@ -1361,7 +1472,7 @@ function renderTradingPanel(trading: TradingSection): string {
 
 function renderBriefMarkdown(b: BriefItem): string {
   const importance = Number.isFinite(b.importance) ? b.importance : 0;
-  return `### [${b.title}](${b.url})\n${b.source} · 重要度 ${importance}/10\n\n${b.summary}\n`;
+  return `### [${b.title}](${b.url})\n${b.source} · ${STR.mdImportance} ${importance}/10\n\n${b.summary}\n`;
 }
 
 function renderSectionMarkdown(title: string, briefs: BriefItem[]): string {
@@ -1371,10 +1482,10 @@ function renderSectionMarkdown(title: string, briefs: BriefItem[]): string {
 
 export function renderMarkdown(report: DailyReport, date: string): string {
   const blocks: string[] = [];
-  blocks.push(`# 每日简报 · ${date}\n`);
+  blocks.push(`# ${STR.siteTitle} · ${date}\n`);
   if (report.hero_headline) blocks.push(`> ${report.hero_headline}\n`);
   if (report.daily_overview) {
-    blocks.push(`## 今日总览\n\n${report.daily_overview}\n`);
+    blocks.push(`## ${STR.mdTodayOverview}\n\n${report.daily_overview}\n`);
   }
   blocks.push(
     renderSectionMarkdown(CATEGORY_DIGEST_LABELS.tech, report.tech_briefs),
@@ -1392,11 +1503,11 @@ export function renderMarkdown(report: DailyReport, date: string): string {
     ),
   );
   if (report.editor_note) {
-    blocks.push(`## 编辑短评\n\n${report.editor_note}\n`);
+    blocks.push(`## ${STR.mdEditorNote}\n\n${report.editor_note}\n`);
   }
   if (report.keywords.length > 0) {
     blocks.push(
-      `## 今日关键词\n\n${report.keywords.map((k) => `\`#${k}\``).join(" ")}\n`,
+      `## ${STR.mdTodayKeywords}\n\n${report.keywords.map((k) => `\`#${k}\``).join(" ")}\n`,
     );
   }
   return blocks.filter(Boolean).join("\n");

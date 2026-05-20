@@ -21,9 +21,10 @@ export interface SourceDef {
   useCurl?: boolean;
   enabled?: boolean;
   /**
-   * Source content language. Default treated as "en". When "zh", the
-   * cnSummary enrichment step skips this source — its content is already
-   * in Chinese, so an LLM summary would just be a slightly-shorter rewrite.
+   * Source content language. Default treated as "en". When this equals
+   * the active REPORT_LOCALE, the summary-enrichment step skips this
+   * source — its content is already in the target language, so an LLM
+   * "summary" would just be a slightly-shorter rewrite.
    */
   lang?: "zh" | "en";
   /**
@@ -48,7 +49,12 @@ export interface RawArticle {
   excerpt?: string;
   publishedAt?: Date;
   category: Category;
-  cnSummary?: string;
+  /**
+   * LLM-generated summary in the active REPORT_LOCALE language. For zh
+   * reports this is the Chinese translation/summary of an English source;
+   * for en reports it'd be the English summary of a non-English source.
+   */
+  summary?: string;
   /**
    * Structured one-line metadata to display above the excerpt — currently
    * used by GitHub Trending for "Language · ★stars · forks · stars today".

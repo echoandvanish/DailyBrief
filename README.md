@@ -183,9 +183,9 @@ REPORT_LOCALE=zh    # 默认 — 中文 mode，含 V2EX / LinuxDo / DW 中文等
 | Locale | 启用源数 | 主要构成 |
 |---|---|---|
 | `zh` | 19 | 16 个英文源（含中文摘要）+ 3 个中文社区源（V2EX / LinuxDo / DW 中文）|
-| `en` | 16 | 仅英文源；切到 en 时建议 enable `hackernews` / `reddit-stocks` 等 en-only 源 |
+| `en` | 18 | 16 个英文源 + 2 个英文社区源（Hacker News / r/stocks）|
 
-> **当前状态**：HTML 报告 UI 文案 + LLM enrichment 提示词都还是中文写死的。`REPORT_LOCALE=en` **目前只切换源集合**，UI/prompt 文案改造留作下一轮（见 [TODO](#TODO)）。
+英文 mode 完整切换：HTML UI 文案、enrichment / digest / trading-commentary 三套 prompt、stance 词（"偏上行/偏下行/中性" → Bullish/Bearish/Neutral）、日期格式（zh-CN → en-GB）、Markdown 输出 — 全部都跟着 `REPORT_LOCALE` 切。**中文社区源在英文 mode 下被自动过滤掉**（没 fork 用户读英文却想看 V2EX 帖子的合理场景）。
 
 ## LLM 后端配置
 

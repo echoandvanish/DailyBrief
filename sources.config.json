@@ -55,7 +55,7 @@
     "url": "https://hacker-news.firebaseio.com/v0",
     "category": "tech",
     "subcategory": "overseas-community",
-    "enabled": false,
+    "enabled": true,
     "locales": [
       "en"
     ]
@@ -480,7 +480,7 @@
     "category": "finance",
     "subcategory": "community",
     "useCurl": true,
-    "enabled": false,
+    "enabled": true,
     "locales": [
       "en"
     ]

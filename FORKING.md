@@ -24,7 +24,7 @@ Edit [`lib/sources/registry.ts`](lib/sources/registry.ts). Each entry:
   subcategory: "ai-news",                 // see SUBCATEGORY_ORDER in render.ts
   enabled: true,
   useCurl: false,                         // true if source blocks Node fetch (Cloudflare TLS fingerprint)
-  lang: "en",                             // "zh" skips cnSummary enrichment
+  lang: "en",                             // enrich skips sources whose lang === REPORT_LOCALE
 }
 ```
 

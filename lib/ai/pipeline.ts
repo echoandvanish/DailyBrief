@@ -1,8 +1,12 @@
 import { jsonrepair } from "jsonrepair";
 import { runLlm } from "./llm";
 import { extractJson } from "./json-util";
-import { SYSTEM_PROMPT_DIGEST } from "./prompts";
+import { SYSTEM_PROMPT_DIGEST_EN, SYSTEM_PROMPT_DIGEST_ZH } from "./prompts";
+import { REPORT_LOCALE } from "../sources/registry";
 import type { Category, RawArticle } from "../sources/types";
+
+const SYSTEM_PROMPT_DIGEST =
+  REPORT_LOCALE === "en" ? SYSTEM_PROMPT_DIGEST_EN : SYSTEM_PROMPT_DIGEST_ZH;
 
 export interface BriefItem {
   title: string;
@@ -104,25 +108,46 @@ async function callOnce(userPayloadJson: string): Promise<DailyReport> {
   // user message (instruction recency wins) *and* explicitly demand every
   // schema field be populated — without this Sonnet has been observed to
   // emit a JSON shell with empty arrays to "satisfy" a JSON-only ask.
-  const userPrompt = [
-    "你的任务：根据下方候选新闻，生成一份当日简报，**响应必须是一个合法 JSON 对象**——以 `{` 开头，以 `}` 结尾，不要 markdown / 不要代码围栏 / 不要任何解释。",
-    "",
-    "JSON 必须包含全部字段且不能为空（briefs 数组按 system prompt 规定的条数填充）：",
-    "  - hero_headline: 10-25 字的当日一句话头条",
-    "  - daily_overview: **150-220 字** 的当日总览段落，一段话覆盖技术 / 财经 / 时政 的核心信号，让读者一眼抓住全貌",
-    "  - tech_briefs: **3-5 条** 科技 BriefItem",
-    "  - finance_briefs: **3-5 条** 财经 BriefItem",
-    "  - politics_briefs: **2-3 条** 时政 BriefItem",
-    "  - editor_note: 30-60 字的编辑短评",
-    "  - keywords: 5-8 个关键词",
-    "",
-    "BriefItem 字段：title、url（必须从候选条目原样选取）、source、summary、importance(1-10)。",
-    "**引号规则（重要！）**：JSON 字符串内的中文引用请使用**中文全角引号**「」或者 “”，**绝对不要**用英文双引号 \" —— 那会导致 JSON 解析失败。例：写 商务部回应「内卷」 而不是 商务部回应\"内卷\"。",
-    "不要使用单引号、不要末尾多余逗号。",
-    "",
-    "候选新闻（JSON 数组，共 " + userPayloadJson.length + " 字符）：",
-    userPayloadJson,
-  ].join("\n");
+  const userPrompt =
+    REPORT_LOCALE === "en"
+      ? [
+          "Your task: generate today's daily brief from the candidate news below. **The response MUST be a single valid JSON object** — starts with `{`, ends with `}`, no markdown, no code fences, no explanations.",
+          "",
+          "The JSON must contain every field non-empty (briefs arrays per the system-prompt counts):",
+          "  - hero_headline: 10-25 word headline of the day",
+          "  - daily_overview: **150-250 word** paragraph covering tech / finance / politics signals so a reader sees the whole picture at a glance",
+          "  - tech_briefs: **3-5** tech BriefItems",
+          "  - finance_briefs: **3-5** finance BriefItems",
+          "  - politics_briefs: **2-3** politics BriefItems",
+          "  - editor_note: 30-60 word editor's note",
+          "  - keywords: 5-8 keywords",
+          "",
+          "BriefItem fields: title, url (copied verbatim from candidate), source, summary, importance (1-10).",
+          "**Quote rule (important!)**: For any quotation INSIDE a JSON string, use single quotes ' or curly quotes '\" — **never** raw double quotes \", which break JSON parsing.",
+          "No trailing commas.",
+          "",
+          `Candidate news (JSON array, ${userPayloadJson.length} chars):`,
+          userPayloadJson,
+        ].join("\n")
+      : [
+          "你的任务：根据下方候选新闻，生成一份当日简报，**响应必须是一个合法 JSON 对象**——以 `{` 开头，以 `}` 结尾，不要 markdown / 不要代码围栏 / 不要任何解释。",
+          "",
+          "JSON 必须包含全部字段且不能为空（briefs 数组按 system prompt 规定的条数填充）：",
+          "  - hero_headline: 10-25 字的当日一句话头条",
+          "  - daily_overview: **150-220 字** 的当日总览段落，一段话覆盖技术 / 财经 / 时政 的核心信号，让读者一眼抓住全貌",
+          "  - tech_briefs: **3-5 条** 科技 BriefItem",
+          "  - finance_briefs: **3-5 条** 财经 BriefItem",
+          "  - politics_briefs: **2-3 条** 时政 BriefItem",
+          "  - editor_note: 30-60 字的编辑短评",
+          "  - keywords: 5-8 个关键词",
+          "",
+          "BriefItem 字段：title、url（必须从候选条目原样选取）、source、summary、importance(1-10)。",
+          "**引号规则（重要！）**：JSON 字符串内的中文引用请使用**中文全角引号**「」或者 “”，**绝对不要**用英文双引号 \" —— 那会导致 JSON 解析失败。例：写 商务部回应「内卷」 而不是 商务部回应\"内卷\"。",
+          "不要使用单引号、不要末尾多余逗号。",
+          "",
+          "候选新闻（JSON 数组，共 " + userPayloadJson.length + " 字符）：",
+          userPayloadJson,
+        ].join("\n");
   const { text } = await runLlm({
     systemPrompt: SYSTEM_PROMPT_DIGEST,
     userPrompt,

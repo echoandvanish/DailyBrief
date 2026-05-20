@@ -11,13 +11,30 @@ export interface TickerDef {
   group: AssetGroup;
 }
 
-export const ASSET_GROUP_LABELS: Record<AssetGroup, string> = {
+const ASSET_GROUP_LABELS_ZH: Record<AssetGroup, string> = {
   "us-equity": "美股 / ETF",
   crypto: "加密货币",
   "china-equity": "中概 / 港股",
   "commodity-fx": "商品 / 外汇",
   macro: "宏观信号",
 };
+
+const ASSET_GROUP_LABELS_EN: Record<AssetGroup, string> = {
+  "us-equity": "US Stocks / ETF",
+  crypto: "Crypto",
+  "china-equity": "China / HK",
+  "commodity-fx": "Commodities / FX",
+  macro: "Macro",
+};
+
+export function getAssetGroupLabels(
+  locale: "zh" | "en",
+): Record<AssetGroup, string> {
+  return locale === "en" ? ASSET_GROUP_LABELS_EN : ASSET_GROUP_LABELS_ZH;
+}
+
+/** @deprecated Use `getAssetGroupLabels(REPORT_LOCALE)` for locale-aware labels. */
+export const ASSET_GROUP_LABELS = ASSET_GROUP_LABELS_ZH;
 
 export const ASSET_GROUP_ORDER: AssetGroup[] = [
   "macro",
