@@ -1,5 +1,20 @@
 # daily-brief · 每日 AI/科技/财经/时政简报
 
+> **每天自动跑一份你的私人中文简报** — 22 个数据源 · LLM 摘要 · 股票/加密**技术指标 + AI 中文交易点评** · 5 个 LLM 后端可选（Claude CLI / Anthropic / OpenAI / DeepSeek / MiniMax）· 一切本地运行，零云依赖。
+
+**[📰 在线 Demo · daily.leiting.tech](https://daily.leiting.tech)**
+
+<table>
+  <tr>
+    <td width="50%" align="center"><img src="docs/screenshots/tech.png" alt="技术动态 — GitHub Trending / X 推文 / AI 媒体" width="100%"><br><sub>技术动态 — GH Trending + X 推文 + AI 媒体</sub></td>
+    <td width="50%" align="center"><img src="docs/screenshots/trading.png" alt="市场行情 — 21 ticker 技术指标 + AI 中文点评" width="100%"><br><sub>市场行情 — 21 ticker 技术指标 + AI 中文点评</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" align="center"><img src="docs/screenshots/politics.png" alt="时政观察 — BBC / Guardian / NYT 等国际要闻" width="100%"><br><sub>时政观察 — BBC / Guardian / NYT 国际要闻</sub></td>
+    <td width="50%" align="center"><img src="docs/screenshots/finance.png" alt="财经要点 — Bloomberg / WSJ / FT 全球财经" width="100%"><br><sub>财经要点 — Bloomberg / WSJ / FT 全球财经</sub></td>
+  </tr>
+</table>
+
 每天自动生成一份单文件 HTML 报告，覆盖：
 
 - **技术动态** — GitHub Trending 热榜、AI 资讯（OpenAI/DeepMind/Hugging Face/TLDR AI/Smol AI/Latent Space/MIT Tech Review）、X 推文（attentionvc 维度）
