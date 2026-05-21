@@ -89,13 +89,19 @@ Two ways:
 
 ## Change LLM provider
 
-The project assumes [claude CLI](https://github.com/anthropics/claude-code) is installed and logged in. All LLM calls funnel through [`lib/ai/claude-cli.ts`](lib/ai/claude-cli.ts) `runClaudeCli()`.
+All LLM calls funnel through [`lib/ai/llm.ts`](lib/ai/llm.ts) `runLlm()`, which dispatches to one of five backends based on the `LLM_BACKEND` env var:
 
-To use a different provider:
-- Swap `runClaudeCli` body for `fetch('https://api.openai.com/...')` or similar
-- Note: this loses the Max-subscription cost model — you'll pay per-token
+| `LLM_BACKEND` | Implementation | Auth |
+|---|---|---|
+| `claude-cli` *(default)* | [`lib/ai/backends/claude-cli.ts`](lib/ai/backends/claude-cli.ts) — spawns the local `claude` CLI | Whatever the CLI is logged in as (e.g. Max subscription) |
+| `anthropic` | [`lib/ai/backends/anthropic.ts`](lib/ai/backends/anthropic.ts) — direct API | `ANTHROPIC_API_KEY` |
+| `openai` / `deepseek` / `minimax` | [`lib/ai/backends/openai-compat.ts`](lib/ai/backends/openai-compat.ts) — OpenAI-compatible Chat Completions | `OPENAI_API_KEY` / `DEEPSEEK_API_KEY` / `MINIMAX_API_KEY` |
 
-Don't try to do this casually. The prompts assume Sonnet's strengths (Chinese fluency, structured JSON output, long context). Other models may need prompt adjustments.
+To **switch backend**: set `LLM_BACKEND=...` in `.env.local`. No code changes.
+
+To **add a new backend** (e.g. Mistral): drop a new file in `lib/ai/backends/`, export a function matching the existing signatures (see `claude-cli.ts` as the simplest reference), then add a branch in `runLlm()` in `lib/ai/llm.ts`.
+
+The prompts (in `lib/ai/prompts.ts`, `enrich.ts`, `trading-commentary.ts`) assume a Sonnet-class model — Chinese fluency, structured JSON output, long context. Switching to a smaller model may need prompt adjustments and JSON-repair fallbacks (already present, but less reliable on weaker models).
 
 ## Configure secrets
 

@@ -7,9 +7,9 @@
 [![Demo: live](https://img.shields.io/badge/demo-daily.leiting.tech-brightgreen.svg)](https://daily.leiting.tech)
 [![Stars](https://img.shields.io/github/stars/leiting-eric/DailyBrief?style=social)](https://github.com/leiting-eric/DailyBrief)
 
-> **每天自动跑一份你的私人中文简报** — 22 个数据源 · LLM 摘要 · 股票/加密**技术指标 + AI 中文交易点评** · 5 个 LLM 后端可选（Claude CLI / Anthropic / OpenAI / DeepSeek / MiniMax）· 一切本地运行，零云依赖。
+> **每天自动跑一份你的私人简报** — 22 个数据源 · LLM 摘要 · 股票/加密**技术指标 + AI 交易点评** · 中英双语 · 5 个 LLM 后端可选（Claude CLI / Anthropic / OpenAI / DeepSeek / MiniMax）· 一切本地运行，零云依赖。
 
-> *Local-first daily Chinese-language digest of tech, markets, geopolitics, finance, and developer-community chatter — 22 sources, LLM-summarized to Chinese, with stock/crypto technicals + AI commentary. Pluggable LLM backend (claude-cli / anthropic / openai / deepseek / minimax). [Live demo](https://daily.leiting.tech) · runs on your machine, not in the cloud.*
+> ***Your morning brief shouldn't live in someone else's database.*** *A self-hosted daily digest — tech, markets, geopolitics, finance — 22 sources, LLM-summarized in Chinese or English, with stock/crypto technicals + AI trading commentary. 5 swappable LLM backends (claude-cli / anthropic / openai / deepseek / minimax). Zero secrets to start with the default `claude` CLI. [Live demo](https://daily.leiting.tech).*
 
 **[📰 在线 Demo · daily.leiting.tech](https://daily.leiting.tech)**
 
@@ -32,7 +32,7 @@
 - **财经要点** — Bloomberg / WSJ / FT / BBC / Economist 全球财经
 - **社区讨论** — V2EX / LinuxDo 中文社区热议
 
-英文源附 LLM 生成的中文摘要。报告以 `daily_reports/<UTC日期>.html` 落盘，单文件、CSS+JS 全内联。
+英文源附 LLM 生成的中文摘要。报告以 `daily_reports/<UTC日期>/<UTC日期>.html` 落盘（每天一个子目录），单文件、CSS+JS 全内联。
 
 ## 设计要点
 
@@ -298,6 +298,8 @@ daily-brief/
 │   ├── install.mjs     # 注册定时任务（Win/Mac/Linux 自适应）
 │   └── uninstall.mjs   # 卸载
 ├── daily_reports/      # 输出 (gitignored)
+│   └── 2026-05-15/     # 每日一个子目录，内含 .html (主) / .json (缓存) / -articles.json (缓存)
+│                       #   .md 默认不生成，可在 .env.local 设 OUTPUT_MARKDOWN=true 开启
 ├── logs/               # 运行日志 (gitignored)
 └── .claude/
     ├── skills/         # Claude Code 操作 skill
