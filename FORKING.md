@@ -12,23 +12,47 @@ Times are local system time. Default is 16:00 (US market close + global news set
 
 ## Add / remove / disable a source
 
-Edit [`lib/sources/registry.ts`](lib/sources/registry.ts). Each entry:
+The source registry lives in [`sources.config.json`](sources.config.json) at the project root — **the single source of truth**. `lib/sources/registry.ts` is just a JSON loader + locale filter; you almost never edit the TS. Append a JSON object:
 
-```ts
+```json
 {
-  id: "my-blog",                          // unique, also used as bucket key
-  name: "My Blog",                        // display label
-  type: "rss",                            // rss | api | scrape
-  url: "https://example.com/feed.xml",
-  category: "tech",                       // tech | finance | politics
-  subcategory: "ai-news",                 // see SUBCATEGORY_ORDER in render.ts
-  enabled: true,
-  useCurl: false,                         // true if source blocks Node fetch (Cloudflare TLS fingerprint)
-  lang: "en",                             // enrich skips sources whose lang === REPORT_LOCALE
+  "id": "my-blog",
+  "name": "My Blog",
+  "type": "rss",
+  "url": "https://example.com/feed.xml",
+  "category": "tech",
+  "subcategory": "ai-news",
+  "enabled": true,
+  "useCurl": false,
+  "lang": "en",
+  "locales": ["zh", "en"],
+  "notes": "Why this source was added / any quirk"
 }
 ```
 
-For non-RSS sources (custom JSON API, scraping), create a new file in `lib/sources/`, export a `fetchXxx(sourceId)` function returning `RawArticle[]`, then add a branch in [`lib/sources/dispatch.ts`](lib/sources/dispatch.ts).
+Field reference:
+
+| Field | Required | Notes |
+|---|---|---|
+| `id` | ✓ | Unique short identifier; routed by `dispatch.ts` to the matching fetcher |
+| `name` | ✓ | Display name in the UI |
+| `type` | ✓ | `rss` / `api` / `scrape` |
+| `url` | ✓ | Feed URL or API endpoint |
+| `category` | ✓ | `tech` / `finance` / `politics` — drives the L1 tab |
+| `subcategory` |  | L2 grouping; see `SUBCATEGORY_ORDER` in `lib/output/render.ts` |
+| `enabled` |  | Default `true`; set `false` to skip without deleting |
+| `useCurl` |  | `true` if the host blocks Node's TLS fingerprint (Cloudflare) — fetcher shells out to curl |
+| `lang` |  | `zh` means the source is already Chinese — enrich skips it when `REPORT_LOCALE=zh` |
+| `locales` |  | Array of `REPORT_LOCALE` values where this source appears. Default `["zh", "en"]` |
+| `notes` |  | Free-form; useful for explaining `enabled: false` or unusual flags |
+
+Workflow:
+1. Edit `sources.config.json`, append the new entry
+2. `npm run sources:check` — validates the JSON schema (also handy as a pre-commit hook)
+3. `npm run dry-run` — verifies the fetcher actually returns articles (~30s, no LLM)
+4. Next `npm run daily` picks it up automatically
+
+For **non-RSS source types** (custom JSON API, scraping), create a new file in `lib/sources/`, export a `fetchXxx(sourceId)` function returning `RawArticle[]`, then add a branch in [`lib/sources/dispatch.ts`](lib/sources/dispatch.ts) so `type: "api"` or `type: "scrape"` entries route there.
 
 ## Rename L1 tabs / change order
 
@@ -105,24 +129,54 @@ The prompts (in `lib/ai/prompts.ts`, `enrich.ts`, `trading-commentary.ts`) assum
 
 ## Configure secrets
 
-Currently the project needs ZERO secrets — everything works out of `claude` CLI being logged in. If you add a paid data source (e.g. Bloomberg API):
+Whether you need any secret depends on how you've deployed:
 
-1. Create `.env.local` at project root (gitignored)
+| Setup | Secrets you need |
+|---|---|
+| Local install + default `claude-cli` backend (reuses Claude Code OAuth) | **None** — just be logged into `claude` CLI |
+| Local install + any API backend (`anthropic` / `openai` / `deepseek` / `minimax`) | That backend's `*_API_KEY` in `.env.local` |
+| GitHub Actions deploy | The chosen backend's API key as a GH **Secret** (Claude OAuth is unreachable from GH runners) — see README §"GH Actions" for the secret/variable matrix |
+
+Adding a NEW secret (e.g. you wire up a paid data source like Bloomberg):
+
+1. `.env.local` at project root (gitignored)
 2. Add `MY_API_KEY=...`
-3. Project already loads it via `dotenv` in [`scripts/daily.ts`](scripts/daily.ts)
+3. It's already loaded — every entry script does `import "./_env"` first, which dotenv-loads `.env.local` before any other module init
 
 ## Debug a failed run
 
+**Last run state (per-OS):**
+
 ```powershell
-# What was the last result?
+# Windows
 Get-ScheduledTaskInfo -TaskName DailyBrief | Format-List LastRunTime, LastTaskResult
+```
 
-# Tail today's log
-Get-Content logs\daily-(Get-Date -Format yyyy-MM-dd).log -Tail 50
+```bash
+# macOS
+launchctl list | grep com.daily-brief
 
-# Check LLM call history
+# Linux (cron doesn't track per-job state, so just inspect cron + log)
+crontab -l | grep daily-brief
+```
+
+**Tail today's log** (date = local time, not UTC):
+
+```bash
+# Cross-platform (uses node — works in PowerShell / bash / zsh)
+node -e "const fs=require('fs'),d=new Date(),pad=n=>String(n).padStart(2,'0');console.log(fs.readFileSync('logs/daily-'+d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'.log','utf8').split('\n').slice(-40).join('\n'))"
+```
+
+**Check LLM call history**:
+
+```bash
 npm run quota-report
 ```
+
+Common error shapes:
+- `429` / `quota` in `logs/llm-calls.jsonl` — backend rate limit; wait or temporarily switch `LLM_BACKEND` in `.env.local`
+- single source `FAILED — <reason>` in the daily log — read that source's fetcher in `lib/sources/<id>.ts`; per-source failures are non-fatal
+- empty trading watchlist — Sonnet's "no investment advice" guardrail occasionally bites; `trading-commentary.ts` retries 3× with a softer prompt, then falls back to an empty panel
 
 Decode `LastTaskResult`:
 - `0` = success
