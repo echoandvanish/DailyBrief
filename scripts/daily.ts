@@ -251,9 +251,7 @@ async function main() {
   if (process.env.FEISHU_WEBHOOK_URL) {
     try {
       const { sendFeishuNotification } = await import("../lib/notifications/feishu");
-      // Use GitHub Pages URL structure based on the repository name
-      const baseUrl = `https://${process.env.GITHUB_REPOSITORY_OWNER || 'echoandvanish'}.github.io/DailyBrief`;
-      const message = `每日新闻简报已生成: ${date}\n查看地址: ${baseUrl}/${OUTPUT_DIR}/${date}/${date}.html`;
+      const message = `每日新闻简报已生成: ${date}\n本地查看路径: ${path.join(projectRoot, OUTPUT_DIR, date, `${date}.html`)}`;
       await sendFeishuNotification(message, process.env.FEISHU_WEBHOOK_URL);
       console.log(`[daily] Feishu notification sent.`);
     } catch (e) {
