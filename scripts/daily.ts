@@ -247,6 +247,20 @@ async function main() {
   if (trading) report.trading = trading;
   console.log(`[daily] digest ready in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
+  // Add Feishu Notification
+  if (process.env.FEISHU_WEBHOOK_URL) {
+    try {
+      const { sendFeishuNotification } = await import("../lib/notifications/feishu");
+      // Use GitHub Pages URL structure based on the repository name
+      const baseUrl = `https://${process.env.GITHUB_REPOSITORY_OWNER || 'echoandvanish'}.github.io/DailyBrief`;
+      const message = `每日新闻简报已生成: ${date}\n查看地址: ${baseUrl}/${OUTPUT_DIR}/${date}/${date}.html`;
+      await sendFeishuNotification(message, process.env.FEISHU_WEBHOOK_URL);
+      console.log(`[daily] Feishu notification sent.`);
+    } catch (e) {
+      console.warn(`[daily] Feishu notification failed: ${e}`);
+    }
+  }
+
   const dateDir = path.join(OUTPUT_DIR, date);
   fs.mkdirSync(dateDir, { recursive: true });
   const base = path.join(dateDir, date);
